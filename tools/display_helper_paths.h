@@ -1,5 +1,7 @@
 #pragma once
 
+#include "src/instance_config.h"
+
 /**
  * @file tools/display_helper_paths.h
  * @brief Shared path/singleton helpers for the display helper engines.
@@ -36,9 +38,9 @@ namespace display_helper_paths {
   }
 
   inline bool ensure_single_instance(HANDLE &out_handle) {
-    out_handle = make_named_mutex(L"Global\\SunshineDisplayHelper");
+    out_handle = make_named_mutex(platf::instance_resource_scope.empty() ? L"Global\\SunshineDisplayHelper" : (L"Global\\SunshineDisplayHelper-" + std::wstring(platf::instance_resource_scope.begin(), platf::instance_resource_scope.end())).c_str());
     if (!out_handle && GetLastError() == ERROR_ACCESS_DENIED) {
-      out_handle = make_named_mutex(L"Local\\SunshineDisplayHelper");
+      out_handle = make_named_mutex(platf::instance_resource_scope.empty() ? L"Local\\SunshineDisplayHelper" : (L"Local\\SunshineDisplayHelper-" + std::wstring(platf::instance_resource_scope.begin(), platf::instance_resource_scope.end())).c_str());
     }
     if (!out_handle) {
       return true;  // continue; best-effort singleton failed
@@ -56,6 +58,11 @@ namespace display_helper_paths {
   }
 
   inline std::filesystem::path compute_log_dir() {
+    if (!platf::appdata_override().empty()) {
+      std::filesystem::create_directories(platf::appdata_override());
+      return platf::appdata_override();
+    }
+
     // Try roaming AppData first
     std::wstring appdataW;
     appdataW.resize(MAX_PATH);
@@ -100,6 +107,11 @@ namespace display_helper_paths {
   }
 
   inline std::filesystem::path compute_snapshot_dir() {
+    if (!platf::appdata_override().empty()) {
+      std::filesystem::create_directories(platf::appdata_override());
+      return platf::appdata_override();
+    }
+
     // When running as SYSTEM, prefer a shared ProgramData location for snapshots.
     if (platf::dxgi::is_running_as_system()) {
       std::wstring programDataW;
@@ -136,6 +148,10 @@ namespace display_helper_paths {
   }
 
   inline std::vector<std::filesystem::path> executable_config_search_roots() {
+    if (!platf::appdata_override().empty()) {
+      return {platf::appdata_override()};
+    }
+
     std::vector<std::filesystem::path> roots;
     wchar_t exe_path[MAX_PATH] = {};
     if (!GetModuleFileNameW(nullptr, exe_path, MAX_PATH)) {
@@ -155,6 +171,10 @@ namespace display_helper_paths {
   }
 
   inline std::vector<std::filesystem::path> snapshot_search_roots() {
+    if (!platf::appdata_override().empty()) {
+      return {platf::appdata_override()};
+    }
+
     std::vector<std::filesystem::path> roots;
     const auto user_root = compute_log_dir();
     if (!user_root.empty()) {

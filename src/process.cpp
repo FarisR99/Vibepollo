@@ -4447,6 +4447,15 @@ namespace proc {
             ctx.image_path = parse_env_val(this_env, app_node.value("image-path", ""));
           }
 
+          if (app_node.contains("capture-crop") && app_node["capture-crop"].is_string()) {
+            const auto crop = parse_env_val(this_env, app_node["capture-crop"].get<std::string>());
+            if (config::parse_capture_crop(crop)) {
+              ctx.config_overrides.emplace("capture_crop", crop);
+            } else if (!crop.empty()) {
+              BOOST_LOG(warning) << "Ignoring malformed per-app capture-crop: " << crop;
+            }
+          }
+
           // Parse per-app global config overrides, keeping values in raw config-file format.
           if (app_node.contains("config-overrides") && app_node["config-overrides"].is_object()) {
             for (const auto &item : app_node["config-overrides"].items()) {
@@ -4461,7 +4470,7 @@ namespace proc {
                 encoded = val.dump();
               }
               if (!encoded.empty()) {
-                ctx.config_overrides.emplace(item.key(), std::move(encoded));
+                ctx.config_overrides.insert_or_assign(item.key(), std::move(encoded));
               }
             }
           }

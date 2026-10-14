@@ -395,7 +395,10 @@
       "anime_size_vl": "Very Large",
       "anime_size_ul": "Ultra Large"
     },
-    "exclude_global_state_cmd": "Exclude Global State Commands"
+    "exclude_global_state_cmd": "Exclude Global State Commands",
+    "capture_crop": "Capture Crop Rect",
+    "capture_crop_desc": "Optional x,y,width,height rectangle in physical pixels relative to the selected display. Empty captures the full output. Windows only; rotated displays are not supported.",
+    "capture_crop_invalid": "Enter four comma-separated nonnegative integers with positive width and height, such as 0,0,3840,2160."
   },
   "offline": {
     "title": "Lost Connection to Vibepollo",

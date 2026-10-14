@@ -381,7 +381,7 @@ namespace platf::dxgi {
     // The IPC texture is a single mutable helper-owned surface. Snapshot it into
     // this pool-owned texture so queued encoder frames remain stable.
     const auto copy_start = std::chrono::steady_clock::now();
-    device_ctx->CopyResource(d3d_img->capture_texture.get(), src.get());
+    copy_capture_region(d3d_img->capture_texture.get(), src.get());
     const auto copy_submit = std::chrono::steady_clock::now() - copy_start;
     d3d_img->blank = false;
 
@@ -617,8 +617,8 @@ namespace platf::dxgi {
         height_before_rotation != _last_height ||
         capture_format != _last_format) {
       D3D11_TEXTURE2D_DESC t {};
-      t.Width = width_before_rotation;
-      t.Height = height_before_rotation;
+      t.Width = cropped ? width : width_before_rotation;
+      t.Height = cropped ? height : height_before_rotation;
       t.Format = capture_format;
       t.ArraySize = 1;
       t.MipLevels = 1;
@@ -642,7 +642,7 @@ namespace platf::dxgi {
     }
 
     // Copy from shared texture to staging texture (queues GPU work)
-    device_ctx->CopyResource(texture.get(), gpu_tex.get());
+    copy_capture_region(texture.get(), gpu_tex.get());
 
     // CRITICAL: Release the keyed mutex BEFORE blocking on Map()
     // The helper needs the mutex to write the next frame while we're reading this one
@@ -676,7 +676,7 @@ namespace platf::dxgi {
       }
 
       // Copy data - use height_before_rotation since WGC captures unrotated texture
-      std::copy_n((std::uint8_t *) img_info.pData, height_before_rotation * img_info.RowPitch, img->data);
+      std::copy_n((std::uint8_t *) img_info.pData, (cropped ? height : height_before_rotation) * img_info.RowPitch, img->data);
 
       // Unmap the staging texture to allow GPU access again
       device_ctx->Unmap(texture.get(), 0);

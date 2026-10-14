@@ -168,6 +168,10 @@ namespace platf {
    * @return The path of the appdata directory that should be used.
    */
   fs::path appdata() {
+    if (const auto &directory = appdata_override(); !directory.empty()) {
+      return directory;
+    }
+
     static std::once_flag migration_flag;
     static fs::path config_path;
 

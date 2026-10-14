@@ -633,6 +633,29 @@ namespace platf::dxgi {
    * @param enumeration_only Specifies whether this test is occurring for display enumeration.
    */
   bool test_dxgi_duplication(adapter_t &adapter, output_t &output, bool enumeration_only) {
+    full_width = width;
+    full_height = height;
+    cropped = false;
+    crop_offset_x = 0;
+    crop_offset_y = 0;
+    if (const auto crop = config::parse_capture_crop(config::video.capture_crop)) {
+      if (display_rotation != DXGI_MODE_ROTATION_UNSPECIFIED && display_rotation != DXGI_MODE_ROTATION_IDENTITY) {
+        BOOST_LOG(warning) << "Ignoring capture crop on a rotated display";
+      } else if (!config::capture_crop_fits(*crop, width, height)) {
+        BOOST_LOG(warning) << "Ignoring capture crop outside the output bounds";
+      } else {
+        cropped = true;
+        crop_offset_x = crop->x;
+        crop_offset_y = crop->y;
+        width = crop->width;
+        height = crop->height;
+        offset_x += crop_offset_x;
+        offset_y += crop_offset_y;
+        BOOST_LOG(info) << "Capture crop: " << width << 'x' << height
+                        << " at " << crop_offset_x << ',' << crop_offset_y;
+      }
+    }
+
     D3D_FEATURE_LEVEL featureLevels[] {
       D3D_FEATURE_LEVEL_11_1,
       D3D_FEATURE_LEVEL_11_0,
@@ -713,6 +736,22 @@ namespace platf::dxgi {
       return 0;  // STATUS_SUCCESS
     } else {
       return STATUS_INVALID_PARAMETER;
+    }
+  }
+
+  void display_base_t::copy_capture_region(ID3D11Texture2D *destination, ID3D11Texture2D *source) {
+    if (cropped) {
+      const D3D11_BOX region {
+        static_cast<UINT>(crop_offset_x),
+        static_cast<UINT>(crop_offset_y),
+        0,
+        static_cast<UINT>(crop_offset_x + width),
+        static_cast<UINT>(crop_offset_y + height),
+        1
+      };
+      device_ctx->CopySubresourceRegion(destination, 0, 0, 0, 0, source, 0, &region);
+    } else {
+      device_ctx->CopyResource(destination, source);
     }
   }
 

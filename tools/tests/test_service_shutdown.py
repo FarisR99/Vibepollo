@@ -24,6 +24,8 @@ fakes = r'''
 #include <cstdint>
 #include <iostream>
 #include <set>
+#include <string>
+std::wstring g_child_command_line = L"Sunshine.exe --config-dir player-two port=48989";
 #define WINAPI
 #define _countof(a) (sizeof(a) / sizeof((a)[0]))
 using DWORD = unsigned long;
@@ -61,7 +63,7 @@ HANDLE acquire(int n) { auto h=handle(n); assert(handles.insert(h).second); retu
 int scenario, event_count, last_error, stopped_count;
 bool stopping, child_alive, killed, attributes_live, attributes_deleted;
 void HandlerEx() {}
-HANDLE RegisterServiceCtrlHandlerEx(...) { return handle(100); }
+HANDLE RegisterServiceCtrlHandlerEx(const char *name, ...) { assert(std::string(name)==(scenario % 2 ? "ApolloServiceP2" : "test")); return handle(100); }
 struct process_exit { DWORD code; };
 [[noreturn]] void ExitProcess(DWORD code) { throw process_exit{code}; }
 DWORD GetLastError() { return last_error; }
@@ -104,8 +106,9 @@ bool SetEnvironmentVariableW(...) { return true; }
 DWORD WTSGetActiveConsoleSessionId() { return 1; }
 HANDLE DuplicateTokenForSession(DWORD) { return acquire(5); }
 HANDLE CreateJobObjectForChildProcess() { return acquire(6); }
-bool CreateProcessAsUserW(HANDLE, const wchar_t *, void *, void *, void *, bool,
+bool CreateProcessAsUserW(HANDLE, const wchar_t *, void *command, void *, void *, bool,
  DWORD, void *, void *, LPSTARTUPINFOW, PROCESS_INFORMATION *p) {
+ assert(command && std::wstring(static_cast<wchar_t *>(command))==g_child_command_line);
  p->hProcess=acquire(7); p->hThread=acquire(8); p->dwProcessId=1;
  child_alive=true; return true;
 }
@@ -145,7 +148,9 @@ int main(int argc, char **argv) {
  scenario=std::stoi(argv[1]);
  bool failed=false;
  try {
-  ServiceMain(0, nullptr);
+  char service_name[] = "ApolloServiceP2";
+  char *service_arguments[] = {service_name};
+  ServiceMain(scenario % 2 ? 1 : 0, scenario % 2 ? service_arguments : nullptr);
  } catch (const process_exit &exit) {
   failed=true;
   assert(scenario==9 || scenario==11);

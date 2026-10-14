@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { validCaptureCrop } from '@/utils/captureCrop';
 import { providerSupported } from '@/utils/providerCapabilities';
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useUnsavedChanges } from '@/composables/useUnsavedChanges';
@@ -83,6 +84,7 @@ interface EditorForm {
   name: string;
   output: string;
   displayOutput: string;
+  captureCrop: string;
   cmd: string;
   workingDir: string;
   imagePath: string;
@@ -1201,6 +1203,7 @@ const editableKeys = new Set([
   'name',
   'output',
   'display-output',
+  'capture-crop',
   'cmd',
   'working-dir',
   'image-path',
@@ -1291,6 +1294,7 @@ function emptyForm(): EditorForm {
     name: '',
     output: '',
     displayOutput: '',
+    captureCrop: '',
     cmd: '',
     workingDir: '',
     imagePath: '',
@@ -1741,6 +1745,7 @@ function hydrate(app: AppRecord): void {
     name: asString(app.name),
     output: asString(app.output),
     displayOutput: asString(app['display-output']),
+    captureCrop: asString(app['capture-crop']),
     cmd: command,
     workingDir: asString(app['working-dir']),
     imagePath: asString(app['image-path']),
@@ -1949,6 +1954,9 @@ function losslessProfilePayload(
 }
 
 function buildPayload(): AppRecord {
+  if (!validCaptureCrop(form.captureCrop)) {
+    throw new Error(t('apps.capture_crop_invalid'));
+  }
   const advanced = JSON.parse(form.advancedJson || '{}') as Record<string, unknown>;
   const configOverrides = buildRtxHdrConfigOverrides(
     JSON.parse(form.configOverridesJson || '{}') as Record<string, unknown>,
@@ -2000,6 +2008,7 @@ function buildPayload(): AppRecord {
 
   setOptionalString(payload, 'output', form.output);
   setOptionalString(payload, 'display-output', form.displayOutput);
+  setOptionalString(payload, 'capture-crop', form.captureCrop);
   setOptionalString(payload, 'working-dir', form.workingDir);
   setOptionalString(payload, 'image-path', form.imagePath);
   setOptionalString(payload, 'playnite-icon-path', form.playniteIconPath);
@@ -4179,6 +4188,21 @@ onBeforeUnmount(() => {
               <option :value="true">{{ t('_common.enabled') }}</option>
               <option :value="false">{{ t('_common.disabled') }}</option>
             </select>
+          </SettingRow>
+          <SettingRow
+            v-if="isWindowsHost"
+            :label="t('apps.capture_crop')"
+            :description="t('apps.capture_crop_desc')"
+            control-id="app-capture-crop"
+          >
+            <input
+              id="app-capture-crop"
+              v-model="form.captureCrop"
+              class="vs-input"
+              type="text"
+              placeholder="0,0,3840,2160"
+              :aria-invalid="!validCaptureCrop(form.captureCrop)"
+            />
           </SettingRow>
           <fieldset class="app-display-routing">
             <legend>{{ t('config.app_display_override_label') }}</legend>

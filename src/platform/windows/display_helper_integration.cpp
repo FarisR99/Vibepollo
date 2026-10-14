@@ -794,7 +794,7 @@ namespace {
     if (Process32FirstW(snapshot, &entry)) {
       do {
         if (_wcsicmp(entry.szExeFile, L"sunshine_display_helper.exe") == 0 &&
-            entry.th32ProcessID != GetCurrentProcessId()) {
+            platf::owns_instance_helper(entry.th32ParentProcessID, GetCurrentProcessId())) {
           targets.push_back(entry.th32ProcessID);
         }
       } while (Process32NextW(snapshot, &entry));
@@ -1725,6 +1725,10 @@ namespace {
     std::wstring helper_args = legacy_engine ? L"--engine=legacy" : L"--engine=v2";
     helper_args += L" --log-level=";
     helper_args += std::to_wstring(std::clamp(config::sunshine.min_log_level, 0, 6));
+    if (!platf::appdata_override().empty()) {
+      helper_args += L" --config-dir \"" + platf::appdata().wstring() + L"\"";
+      helper_args += L" --instance-id=" + std::to_wstring(GetCurrentProcessId());
+    }
     statefile::save_display_helper_engine(legacy_engine ? "legacy" : "v2");
     BOOST_LOG(debug) << "Starting display helper: " << platf::to_utf8(helper.wstring())
                      << " " << platf::to_utf8(helper_args);

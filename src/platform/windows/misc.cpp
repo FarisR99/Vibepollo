@@ -236,6 +236,10 @@ namespace platf {
   }
 
   std::filesystem::path appdata() {
+    if (const auto &directory = appdata_override(); !directory.empty()) {
+      return directory;
+    }
+
     WCHAR sunshine_path[MAX_PATH];
     GetModuleFileNameW(nullptr, sunshine_path, _countof(sunshine_path));
     return std::filesystem::path {sunshine_path}.remove_filename() / L"config"sv;

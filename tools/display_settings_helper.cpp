@@ -1,3 +1,5 @@
+#include "src/instance_config.h"
+#include "tools/display_helper_paths.h"
 /**
  * @file tools/display_settings_helper.cpp
  * @brief Detached helper to apply/revert Windows display settings via IPC.
@@ -4925,6 +4927,9 @@ namespace {
   }
 
   bool ensure_single_instance(HANDLE &out_handle) {
+    if (!platf::instance_resource_scope.empty()) {
+      return display_helper_paths::ensure_single_instance(out_handle);
+    }
     out_handle = make_named_mutex(L"Global\\SunshineDisplayHelper");
     if (!out_handle && GetLastError() == ERROR_ACCESS_DENIED) {
       out_handle = make_named_mutex(L"Local\\SunshineDisplayHelper");
@@ -4939,6 +4944,10 @@ namespace {
   }
 
   std::filesystem::path compute_log_dir() {
+    if (!platf::appdata_override().empty()) {
+      return display_helper_paths::compute_log_dir();
+    }
+
     // Try roaming AppData first
     std::wstring appdataW;
     appdataW.resize(MAX_PATH);
@@ -4983,6 +4992,10 @@ namespace {
   }
 
   std::filesystem::path compute_snapshot_dir() {
+    if (!platf::appdata_override().empty()) {
+      return display_helper_paths::compute_snapshot_dir();
+    }
+
     // When running as SYSTEM, prefer a shared ProgramData location for snapshots.
     if (platf::dxgi::is_running_as_system()) {
       std::wstring programDataW;
@@ -5019,6 +5032,10 @@ namespace {
   }
 
   std::vector<std::filesystem::path> executable_config_search_roots() {
+    if (!platf::appdata_override().empty()) {
+      return display_helper_paths::executable_config_search_roots();
+    }
+
     std::vector<std::filesystem::path> roots;
     wchar_t exe_path[MAX_PATH] = {};
     if (!GetModuleFileNameW(nullptr, exe_path, MAX_PATH)) {
@@ -5038,6 +5055,10 @@ namespace {
   }
 
   std::vector<std::filesystem::path> snapshot_search_roots() {
+    if (!platf::appdata_override().empty()) {
+      return display_helper_paths::snapshot_search_roots();
+    }
+
     std::vector<std::filesystem::path> roots;
     const auto user_root = compute_log_dir();
     if (!user_root.empty()) {
@@ -6131,6 +6152,7 @@ namespace {
 }  // namespace
 
 int run_legacy_helper(int argc, char *argv[]) {
+  platf::configure_helper_instance(argc, argv);
   bool restore_mode = false;
   if (argc > 1) {
     for (int i = 1; i < argc; ++i) {
@@ -6302,10 +6324,10 @@ int run_legacy_helper(int argc, char *argv[]) {
 
   // Outer service loop: keep accepting new client sessions while running
   while (running.load(std::memory_order_acquire)) {
-    auto ctrl_pipe = pipe_factory.create_server("sunshine_display_helper");
+    auto ctrl_pipe = pipe_factory.create_server(platf::instance_resource_name("sunshine_display_helper"));
     if (!ctrl_pipe) {
       platf::dxgi::FramedPipeFactory fallback_factory(std::make_unique<platf::dxgi::NamedPipeFactory>());
-      ctrl_pipe = fallback_factory.create_server("sunshine_display_helper");
+      ctrl_pipe = fallback_factory.create_server(platf::instance_resource_name("sunshine_display_helper"));
       if (!ctrl_pipe) {
         BOOST_LOG(error) << "Failed to create control pipe; retrying in 500ms";
         std::this_thread::sleep_for(500ms);

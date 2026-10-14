@@ -108,7 +108,7 @@ namespace VDISPLAY {
 #define PRIVATE_KEY_FILE CA_DIR "/cakey.pem"
 #define CERTIFICATE_FILE CA_DIR "/cacert.pem"
 
-#define APPS_JSON_PATH platf::appdata().string() + "/apps.json"
+#define APPS_JSON_PATH "apps.json"
 
 namespace config {
   namespace {
@@ -926,6 +926,7 @@ namespace config {
     {},  // adapter_name
     {},  // adapter_pnp_id
     {},  // output_name
+    {},  // capture_crop
 
     video_t::virtual_display_mode_e::per_client,  // virtual_display_mode
     video_t::virtual_display_layout_e::exclusive,  // virtual_display_layout
@@ -1106,7 +1107,7 @@ namespace config {
     47989,  // Base port number
     "ipv4",  // Address family
     {},  // Bind address
-    (platf::appdata() / default_log_filename).string(),  // log file
+    std::string(default_log_filename),  // log file, resolved under appdata during parsing
     true,  // notify_pre_releases
     false,  // legacy_ordering
     true,  // system_tray
@@ -1909,6 +1910,8 @@ namespace config {
       video.adapter_pnp_id.clear();
     }
     string_f(vars, "output_name", video.output_name);
+    video.capture_crop.clear();
+    string_f(vars, "capture_crop", video.capture_crop);
 
     const auto virtual_display_mode_it = vars.find("virtual_display_mode");
     const bool virtual_display_mode_specified =
@@ -2395,6 +2398,7 @@ namespace config {
 
   int parse(int argc, char *argv[]) {
     std::unordered_map<std::string, std::string> cmd_vars;
+    bool config_file_specified = false;
 #ifdef _WIN32
     bool shortcut_launch = false;
     bool service_admin_launch = false;
@@ -2414,7 +2418,16 @@ namespace config {
         service_admin_launch = true;
       }
 #endif
-      else if (*line == '-') {
+      else if (const auto option = platf::parse_config_directory_argument(line, x + 1 < argc ? argv[x + 1] : ""); option.matched) {
+        if (!option.directory) {
+          logging::print_help(*argv);
+          return -1;
+        }
+        platf::set_appdata_dir(std::filesystem::absolute(std::string {*option.directory}));
+        if (option.consumes_next) {
+          ++x;
+        }
+      } else if (*line == '-') {
         if (*(line + 1) == '-') {
           sunshine.cmd.name = line + 2;
           sunshine.cmd.argc = argc - x - 1;
@@ -2432,6 +2445,7 @@ namespace config {
         auto pos = std::find(line, line_end, '=');
         if (pos == line_end) {
           sunshine.config_file = line;
+          config_file_specified = true;
         } else {
           TUPLE_EL(var, 1, parse_option(line, line_end));
           if (!var) {
@@ -2450,6 +2464,16 @@ namespace config {
         }
       }
     }
+
+    if (!config_file_specified) {
+      sunshine.config_file = (platf::appdata() / default_config_filename).string();
+    }
+
+#ifdef _WIN32
+    if (!platf::appdata_override().empty()) {
+      platf::instance_resource_scope = std::to_string(GetCurrentProcessId());
+    }
+#endif
 
     bool config_loaded = false;
     try {
@@ -2677,6 +2701,7 @@ namespace config {
         "dualsense_haptics_gain",
 
         // Stream audio/video and display automation
+        "capture_crop",
         "audio_sink",
         "audio_sink_capture_only",
         "virtual_sink",

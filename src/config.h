@@ -17,6 +17,7 @@
 #include <vector>
 
 // local includes
+#include "capture_crop.h"
 #include "nvenc/nvenc_config.h"
 
 namespace config {
@@ -157,6 +158,7 @@ namespace config {
     std::string adapter_name;
     std::string adapter_pnp_id;
     std::string output_name;
+    std::string capture_crop;  ///< Optional x,y,width,height rectangle on an unrotated Windows output.
 
     virtual_display_mode_e virtual_display_mode;
     virtual_display_layout_e virtual_display_layout;

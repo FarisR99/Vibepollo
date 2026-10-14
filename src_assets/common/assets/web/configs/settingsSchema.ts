@@ -74,6 +74,7 @@ export const clientOverrideableKeys = new Set([
   'ds5_inputtino_randomize_mac',
   'proton_dualsense_compatibility',
   'dualsense_haptics_gain',
+  'capture_crop',
   'audio_sink',
   'audio_sink_capture_only',
   'virtual_sink',
@@ -691,6 +692,12 @@ export const settingsCategories: SettingsCategory[] = [
         id: 'display_target',
         fields: [
           text('output_name', { monospace: true, stacked: true }),
+          text('capture_crop', {
+            platform: 'windows',
+            monospace: true,
+            labelKey: 'apps.capture_crop',
+            descriptionKey: 'apps.capture_crop_desc',
+          }),
           select('adapter_name', [], { source: 'gpu' }),
           select('dd_configuration_option', [
             option('verify_only', 'ui.settings.options.display_preparation.verify_only'),
@@ -1152,6 +1159,7 @@ export const settingsDefaults: Record<string, unknown> = {
   origin_web_ui_allowed: 'lan',
   upnp: false,
   output_name: '',
+  capture_crop: '',
   adapter_name: '',
   adapter_pnp_id: '',
   dd_configuration_option: 'verify_only',

@@ -319,6 +319,13 @@ sunshine_add_test_target(
 )
 
 sunshine_add_test_target(
+    NAME test_fast_fork_features
+    CATEGORY fast
+    TEST_SOURCES "${CMAKE_CURRENT_LIST_DIR}/unit/test_fork_features.cpp"
+    LINK_LIBRARIES GTest::gtest_main
+)
+
+sunshine_add_test_target(
     NAME test_fast_thread_safe
     CATEGORY fast
     TEST_SOURCES
@@ -1129,6 +1136,12 @@ if(SUNSHINE_TEST_ENABLE_COMPONENT AND Python3_Interpreter_FOUND AND CMAKE_CXX_CO
 endif()
 find_program(SUNSHINE_TEST_GXX NAMES g++)
 if(Python3_Interpreter_FOUND AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(NAME regression_capture_crop_copy
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/platform/windows/test_capture_crop_copy.py")
+    set_tests_properties(regression_capture_crop_copy PROPERTIES LABELS "component")
+    add_test(NAME regression_service_instance_args
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/platform/windows/test_service_instance_args.py")
+    set_tests_properties(regression_service_instance_args PROPERTIES LABELS "component")
     add_test(NAME regression_cuda_release_policy
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/test_cuda_release_policy.py")
 endif()

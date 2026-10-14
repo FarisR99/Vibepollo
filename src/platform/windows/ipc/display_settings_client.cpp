@@ -1,3 +1,4 @@
+#include "src/instance_config.h"
 /**
  * @file src/platform/windows/ipc/display_settings_client.cpp
  */
@@ -884,7 +885,7 @@ namespace platf::display_helper_client {
     // fast paths below intentionally never call this function.
     if (remaining_ms() > 0 && create_session([]() -> std::unique_ptr<platf::dxgi::INamedPipe> {
           platf::dxgi::FramedPipeFactory ff(std::make_unique<platf::dxgi::AnonymousPipeFactory>());
-          return ff.create_client("sunshine_display_helper");
+          return ff.create_client(platf::instance_resource_name("sunshine_display_helper"));
         })) {
       return true;
     }
@@ -892,7 +893,7 @@ namespace platf::display_helper_client {
       BOOST_LOG(debug) << "Display helper IPC: anonymous connect failed; trying named fallback";
       if (create_session([]() -> std::unique_ptr<platf::dxgi::INamedPipe> {
             platf::dxgi::FramedPipeFactory ff(std::make_unique<platf::dxgi::NamedPipeFactory>());
-            return ff.create_client("sunshine_display_helper");
+            return ff.create_client(platf::instance_resource_name("sunshine_display_helper"));
           })) {
         return true;
       }

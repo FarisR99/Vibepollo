@@ -2489,9 +2489,9 @@ namespace platf::dxgi {
     }
 
     if (frame_info.LastMouseUpdateTime.QuadPart) {
-      cursor_alpha.set_pos(frame_info.PointerPosition.Position.x, frame_info.PointerPosition.Position.y, width, height, display_rotation, frame_info.PointerPosition.Visible);
+      cursor_alpha.set_pos(frame_info.PointerPosition.Position.x - crop_offset_x, frame_info.PointerPosition.Position.y - crop_offset_y, width, height, display_rotation, frame_info.PointerPosition.Visible);
 
-      cursor_xor.set_pos(frame_info.PointerPosition.Position.x, frame_info.PointerPosition.Position.y, width, height, display_rotation, frame_info.PointerPosition.Visible);
+      cursor_xor.set_pos(frame_info.PointerPosition.Position.x - crop_offset_x, frame_info.PointerPosition.Position.y - crop_offset_y, width, height, display_rotation, frame_info.PointerPosition.Visible);
     }
 
     const bool blend_mouse_cursor_flag = (cursor_alpha.visible || cursor_xor.visible) && cursor_visible;
@@ -2607,8 +2607,8 @@ namespace platf::dxgi {
 
       // Otherwise create a new surface.
       D3D11_TEXTURE2D_DESC t {};
-      t.Width = width_before_rotation;
-      t.Height = height_before_rotation;
+      t.Width = cropped ? width : width_before_rotation;
+      t.Height = cropped ? height : height_before_rotation;
       t.MipLevels = 1;
       t.ArraySize = 1;
       t.SampleDesc.Count = 1;
@@ -2718,7 +2718,7 @@ namespace platf::dxgi {
             return capture_e::error;
           }
 
-          device_ctx->CopyResource(d3d_img->capture_texture.get(), src.get());
+          copy_capture_region(d3d_img->capture_texture.get(), src.get());
           last_frame_variant = img;
           break;
         }
@@ -2733,7 +2733,7 @@ namespace platf::dxgi {
               return capture_e::error;
             }
           }
-          device_ctx->CopyResource(p_surface->get(), src.get());
+          copy_capture_region(p_surface->get(), src.get());
           break;
         }
     }
@@ -2957,8 +2957,8 @@ namespace platf::dxgi {
     auto img = std::make_shared<img_d3d_t>();
 
     // Initialize format-independent fields
-    img->width = width_before_rotation;
-    img->height = height_before_rotation;
+    img->width = cropped ? width : width_before_rotation;
+    img->height = cropped ? height : height_before_rotation;
     img->id = next_image_id++;
     img->blank = true;
 

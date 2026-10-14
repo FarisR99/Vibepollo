@@ -56,6 +56,7 @@ namespace {
 }  // namespace
 
 int main(int argc, char *argv[]) {
+  platf::configure_helper_instance(argc, argv);
   std::string engine;
   constexpr const char *kEnginePrefix = "--engine=";
   for (int i = 1; i < argc; ++i) {

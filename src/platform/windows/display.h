@@ -243,6 +243,18 @@ namespace platf::dxgi {
     DXGI_MODE_ROTATION display_rotation = DXGI_MODE_ROTATION_UNSPECIFIED;
     int width_before_rotation;
     int height_before_rotation;
+    int full_width {};  ///< Uncropped output width, used for source-size validation.
+    int full_height {};  ///< Uncropped output height, used for source-size validation.
+    bool cropped {false};  ///< Whether this display captures a sub-rectangle.
+    int crop_offset_x {};  ///< Source rectangle's horizontal offset.
+    int crop_offset_y {};  ///< Source rectangle's vertical offset.
+
+    /**
+     * @brief Copy a full capture surface into a full-size or cropped destination.
+     * @param destination Destination texture matching the stream's capture dimensions.
+     * @param source Full output texture owned by DDA or WGC.
+     */
+    void copy_capture_region(ID3D11Texture2D *destination, ID3D11Texture2D *source);
 
     int client_frame_rate {};
     DXGI_RATIONAL client_frame_rate_strict {0, 0};

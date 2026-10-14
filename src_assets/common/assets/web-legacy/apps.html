@@ -270,6 +270,12 @@
             />
             <div id="appImagePathHelp" class="form-text">{{ $t('apps.image_desc') }}</div>
           </div>
+          <div v-if="platform === 'windows'" class="mb-3">
+            <label for="capture-crop" class="form-label">{{ $t('apps.capture_crop') }}</label>
+            <input id="capture-crop" class="form-control" type="text"
+                   v-model="editForm['capture-crop']" placeholder="0,0,3840,2160" />
+            <div class="form-text">{{ $t('apps.capture_crop_desc') }}</div>
+          </div>
           <!-- gamepad override -->
           <div class="mb-3" v-if="platform !== 'macos'">
             <label for="gamepad" class="form-label">{{ $t('config.gamepad') }}</label>
@@ -669,6 +675,7 @@ sh -c "displayplacer "id:&lt;screenId&gt; res:${APOLLO_CLIENT_WIDTH}x${APOLLO_CL
       'allow-client-commands': true,
       'virtual-display': false,
       'terminate-on-pause': false,
+      'capture-crop': '',
       gamepad: '',
     };
 

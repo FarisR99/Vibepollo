@@ -69,7 +69,7 @@ build-msvc
 .cache/
 
 # Local-only Copilot instructions (not committed)
-AGENTS.md
+# Keep this fork's agent guidance in version control.
 .github/copilot-instructions.md
 /build_release
 

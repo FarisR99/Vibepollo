@@ -91,6 +91,10 @@ namespace platf {
   }
 
   fs::path appdata() {
+    if (const auto &directory = appdata_override(); !directory.empty()) {
+      return directory;
+    }
+
     const char *homedir;
     if ((homedir = getenv("HOME")) == nullptr) {
       homedir = getpwuid(geteuid())->pw_dir;

@@ -63,6 +63,10 @@ using namespace std::literals;
 
 // system_tray namespace
 namespace system_tray {
+  /**
+   * @brief Return the stable tray label for this configuration directory.
+   */
+  const char *instance_label();
   static std::atomic<bool> tray_initialized = false;
   static std::atomic<bool> tray_thread_running = false;
   static std::atomic<bool> tray_thread_should_exit = false;
@@ -296,6 +300,7 @@ namespace system_tray {
   #endif
 
     int attempt = 0;
+    tray.tooltip = instance_label();
     int tray_init_result = -1;
     while (tray_init_result < 0 && attempt < 30) {
 #ifdef _WIN32
@@ -410,6 +415,29 @@ namespace system_tray {
     return 0;
   }
 
+  /**
+   * @brief Tray tooltip / label for this instance.
+   *
+   * Secondary instances (those launched with --config-dir or SUNSHINE_CONFIG_DIR) append their
+   * config-dir name so multiple concurrent instances are distinguishable in the system tray. The
+   * primary instance keeps the plain project name.
+   *
+   * @return A stable, process-lifetime C string suitable for tray.tooltip / app display name.
+   */
+  const char *instance_label() {
+    static const std::string label = []() -> std::string {
+      if (platf::appdata_override().empty()) {
+        return PROJECT_NAME;
+      }
+      const auto leaf = platf::appdata().filename().string();
+      if (leaf.empty()) {
+        return PROJECT_NAME;
+      }
+      return std::string(PROJECT_NAME) + " (" + leaf + ")";
+    }();
+    return label.c_str();
+  }
+
   // Persistent storage for tooltip/notification strings to avoid dangling pointers
   static std::string s_tooltip;
   static std::string s_notification_text;
@@ -440,7 +468,7 @@ namespace system_tray {
       force_close_msg[std::size(force_close_msg) - 1] = '\0';
   #endif
       s_notification_text = msg;
-      s_tooltip = "Streaming started for " + app_name;
+      s_tooltip = std::string(instance_label()) + ": Streaming started for " + app_name;
       tray.notification_title = "App launched";
       tray.notification_text = s_notification_text.c_str();
       tray.notification_icon = TRAY_ICON_PLAYING;
@@ -470,7 +498,8 @@ namespace system_tray {
       tray.notification_title = "Stream Paused";
       tray.notification_text = s_notification_text.c_str();
       tray.notification_icon = TRAY_ICON_PAUSING;
-      tray.tooltip = s_notification_text.c_str();
+      s_tooltip = std::string(instance_label()) + ": " + s_notification_text;
+      tray.tooltip = s_tooltip.c_str();
       tray_update(&tray);
     });
   }
@@ -494,7 +523,7 @@ namespace system_tray {
       tray.notification_icon = TRAY_ICON;
       tray.notification_title = "Application Stopped";
       tray.notification_text = s_notification_text.c_str();
-      tray.tooltip = PROJECT_NAME;
+      tray.tooltip = instance_label();
       tray.menu[2].text = TRAY_MSG_NO_APP_RUNNING;
       s_last_playing_app.clear();
       tray_update(&tray);
@@ -525,7 +554,7 @@ namespace system_tray {
         BOOST_LOG(info) << "Force stop from notification"sv;
         proc::proc.terminate();
       };
-      tray.tooltip = PROJECT_NAME;
+      tray.tooltip = instance_label();
       s_last_playing_app.clear();
       tray_update(&tray);
     });
@@ -542,7 +571,7 @@ namespace system_tray {
       tray.notification_title = "Incoming Pairing Request";
       tray.notification_text = "Click here to complete the pairing process";
       tray.notification_icon = TRAY_ICON_LOCKED;
-      tray.tooltip = PROJECT_NAME;
+      tray.tooltip = instance_label();
       tray.notification_cb = []() {
         launch_ui("/clients");
       };
@@ -570,7 +599,7 @@ namespace system_tray {
       s_paired_text = msg;
       tray.notification_text = s_paired_text.c_str();
       tray.notification_icon = TRAY_ICON;
-      tray.tooltip = PROJECT_NAME;
+      tray.tooltip = instance_label();
       tray_update(&tray);
     });
   }
@@ -596,7 +625,7 @@ namespace system_tray {
       s_client_text = msg;
       tray.notification_text = s_client_text.c_str();
       tray.notification_icon = TRAY_ICON;
-      tray.tooltip = PROJECT_NAME;
+      tray.tooltip = instance_label();
       tray_update(&tray);
     });
   }
@@ -612,7 +641,7 @@ namespace system_tray {
       tray.notification_title = "Gamepad Input Unavailable";
       tray.notification_text = "ViGEm is not installed. Click for setup info";
       tray.notification_icon = TRAY_ICON;
-      tray.tooltip = PROJECT_NAME;
+      tray.tooltip = instance_label();
       tray.notification_cb = []() {
         launch_ui("/");
       };
@@ -735,7 +764,7 @@ namespace system_tray {
       tray.notification_title = s_notify_title.empty() ? nullptr : s_notify_title.c_str();
       tray.notification_text = s_notification_text.c_str();
       tray.notification_icon = TRAY_ICON;
-      tray.tooltip = PROJECT_NAME;
+      tray.tooltip = instance_label();
       tray.notification_cb = cb;
       tray_update(&tray);
     });

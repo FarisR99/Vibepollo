@@ -1,3 +1,4 @@
+#include "src/instance_config.h"
 /**
  * @file tools/display_settings_helper_v2.cpp
  * @brief Display helper v2 engine: modern FSM-based engine with the legacy
@@ -610,6 +611,7 @@ namespace {
 }  // namespace
 
 int run_v2_helper(int argc, char *argv[]) {
+  platf::configure_helper_instance(argc, argv);
   bool restore_mode = false;
   std::optional<int> log_level_override;
   constexpr const char *kLogLevelPrefix = "--log-level=";
@@ -923,10 +925,10 @@ int run_v2_helper(int argc, char *argv[]) {
   constexpr auto kReconnectLogInterval = std::chrono::hours(1);
   while (running.load(std::memory_order_acquire)) {
     platf::dxgi::FramedPipeFactory pipe_factory(std::make_unique<platf::dxgi::AnonymousPipeFactory>());
-    auto server_pipe = pipe_factory.create_server("sunshine_display_helper");
+    auto server_pipe = pipe_factory.create_server(platf::instance_resource_name("sunshine_display_helper"));
     if (!server_pipe) {
       platf::dxgi::FramedPipeFactory fallback_factory(std::make_unique<platf::dxgi::NamedPipeFactory>());
-      server_pipe = fallback_factory.create_server("sunshine_display_helper");
+      server_pipe = fallback_factory.create_server(platf::instance_resource_name("sunshine_display_helper"));
       if (!server_pipe) {
         BOOST_LOG(error) << "Failed to create control pipe; retrying while keeping recovery timers alive.";
         // Listener creation is incidental to recovery. Continue driving the

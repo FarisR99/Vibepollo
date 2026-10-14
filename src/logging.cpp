@@ -803,6 +803,8 @@ namespace logging {
       << std::endl
       << "    --help                    | print help"sv << std::endl
       << "    --creds username password | set user credentials for the Web manager"sv << std::endl
+      << "    --config-dir <directory>  | independent config/apps/credentials/state/log directory"sv << std::endl
+      << "                              | also settable via SUNSHINE_CONFIG_DIR; use unique port=<n>"sv << std::endl
       << "    --version                 | print the version of Vibepollo"sv << std::endl
       << std::endl
       << "    flags"sv << std::endl

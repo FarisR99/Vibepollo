@@ -126,6 +126,7 @@ export interface ServerApp {
   name?: string;
   output?: string;
   'display-output'?: string;
+  'capture-crop'?: string;
   cmd?: string | string[];
   uuid?: string;
   'working-dir'?: string;

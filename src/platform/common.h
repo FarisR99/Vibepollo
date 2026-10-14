@@ -4,6 +4,8 @@
  */
 #pragma once
 
+#include "src/instance_config.h"
+
 // standard includes
 #include <algorithm>
 #include <atomic>

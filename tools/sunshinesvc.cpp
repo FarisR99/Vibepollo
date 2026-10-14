@@ -25,6 +25,104 @@ constexpr DWORD FAST_EXIT_WINDOW_MS = 60 * 1000;
 constexpr DWORD CRASH_LOOP_RESTART_DELAY_MS = 30 * 1000;
 constexpr DWORD CRASH_LOOP_FAST_EXIT_THRESHOLD = 3;
 
+// Command line used to launch Sunshine.exe in the console session. Any arguments passed to this
+// service (via its binPath, e.g. `--config-dir "..." port=48989`) are forwarded to Sunshine so a
+// second SunshineService instance can run from the same exe against its own config dir / port.
+std::wstring g_child_command_line = L"Sunshine.exe";  ///< Forwarded child command line for this service instance.
+
+// Leaf name of the log file written under the Temp folder. Defaults to sunshine.log; when a
+// --config-dir is forwarded it becomes sunshine-<dir-leaf>.log so parallel service instances do
+// not fight over one log file.
+std::wstring g_log_file_leaf = L"sunshine.log";  ///< Distinct temporary log filename selected by config directory.
+
+/**
+ * @brief Return the portion of this process's command line after the program-name token.
+ *
+ * The service is started by the SCM with its binPath as the command line, so GetCommandLineW()
+ * already holds any forwarded arguments correctly quoted. We only need to strip the leading
+ * (optionally quoted) executable token and return the remainder verbatim.
+ *
+ * @return The forwarded arguments (may be empty), with leading whitespace removed.
+ */
+std::wstring GetForwardedArguments() {
+  const wchar_t *p = GetCommandLineW();
+  if (*p == L'"') {
+    // Quoted program name: skip to the matching closing quote.
+    ++p;
+    while (*p && *p != L'"') {
+      ++p;
+    }
+    if (*p == L'"') {
+      ++p;
+    }
+  } else {
+    while (*p && *p != L' ' && *p != L'\t') {
+      ++p;
+    }
+  }
+  while (*p == L' ' || *p == L'\t') {
+    ++p;
+  }
+  return std::wstring {p};
+}
+
+/**
+ * @brief Extract the last path component of a forwarded --config-dir value, if present.
+ *
+ * Handles both `--config-dir <value>` and `--config-dir=<value>`, with or without surrounding
+ * quotes. Used to give each service instance a distinct log file name.
+ *
+ * @param args The forwarded argument string from GetForwardedArguments().
+ * @return The leaf directory name (e.g. "config-2"), or an empty string if no --config-dir.
+ */
+std::wstring ConfigDirLeaf(const std::wstring &args) {
+  static const std::wstring flag = L"--config-dir";
+  size_t pos = args.find(flag);
+  if (pos == std::wstring::npos) {
+    return {};
+  }
+  size_t i = pos + flag.size();
+  if (i < args.size() && args[i] == L'=') {
+    ++i;
+  } else {
+    while (i < args.size() && (args[i] == L' ' || args[i] == L'\t')) {
+      ++i;
+    }
+  }
+  std::wstring value;
+  if (i < args.size() && args[i] == L'"') {
+    ++i;
+    while (i < args.size() && args[i] != L'"') {
+      value += args[i++];
+    }
+  } else {
+    while (i < args.size() && args[i] != L' ' && args[i] != L'\t') {
+      value += args[i++];
+    }
+  }
+  while (!value.empty() && (value.back() == L'\\' || value.back() == L'/')) {
+    value.pop_back();
+  }
+  size_t sep = value.find_last_of(L"\\/");
+  return (sep == std::wstring::npos) ? value : value.substr(sep + 1);
+}
+
+/**
+ * @brief Populate g_child_command_line and g_log_file_leaf from this service's own arguments.
+ */
+void BuildChildInvocation() {
+  std::wstring args = GetForwardedArguments();
+  g_child_command_line = L"Sunshine.exe";
+  if (!args.empty()) {
+    g_child_command_line += L' ';
+    g_child_command_line += args;
+  }
+  std::wstring leaf = ConfigDirLeaf(args);
+  if (!leaf.empty()) {
+    g_log_file_leaf = L"sunshine-" + leaf + L".log";
+  }
+}
+
 DWORD WINAPI HandlerEx(DWORD dwControl, DWORD dwEventType, LPVOID lpEventData, LPVOID lpContext) {
   switch (dwControl) {
     case SERVICE_CONTROL_INTERROGATE:
@@ -126,7 +224,7 @@ HANDLE OpenLogFileHandle() {
 
   // Create sunshine.log in the Temp folder (usually %SYSTEMROOT%\Temp)
   GetTempPathW(_countof(log_file_name), log_file_name);
-  wcscat_s(log_file_name, L"sunshine.log");
+  wcscat_s(log_file_name, g_log_file_leaf.c_str());
 
   // The file handle must be inheritable for our child process to use it
   SECURITY_ATTRIBUTES security_attributes = {sizeof(security_attributes), nullptr, TRUE};
@@ -193,7 +291,7 @@ void ReportServiceStopped(DWORD error, HANDLE log_file_handle = INVALID_HANDLE_V
 }
 
 VOID WINAPI ServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
-  service_status_handle = RegisterServiceCtrlHandlerEx(SERVICE_NAME, HandlerEx, nullptr);
+  service_status_handle = RegisterServiceCtrlHandlerEx(dwArgc && lpszArgv ? lpszArgv[0] : SERVICE_NAME, HandlerEx, nullptr);
   if (service_status_handle == nullptr) {
     // Nothing we can really do here but terminate ourselves
     ExitProcess(GetLastError());
@@ -287,7 +385,8 @@ VOID WINAPI ServiceMain(DWORD dwArgc, LPTSTR *lpszArgv) {
     UpdateProcThreadAttribute(startup_info.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_JOB_LIST, &job_handle, sizeof(job_handle), nullptr, nullptr);
 
     PROCESS_INFORMATION process_info;
-    if (!CreateProcessAsUserW(console_token, L"Sunshine.exe", nullptr, nullptr, nullptr, TRUE, CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, nullptr, nullptr, (LPSTARTUPINFOW) &startup_info, &process_info)) {
+    std::wstring child_command = g_child_command_line;
+    if (!CreateProcessAsUserW(console_token, L"Sunshine.exe", child_command.data(), nullptr, nullptr, TRUE, CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, nullptr, nullptr, (LPSTARTUPINFOW) &startup_info, &process_info)) {
       CloseHandle(console_token);
       CloseHandle(job_handle);
       continue;
@@ -413,6 +512,8 @@ int main(int argc, char *argv[]) {
   if (argc == 3 && strcmp(argv[1], "--terminate") == 0) {
     return DoGracefulTermination(atol(argv[2]));
   }
+
+  BuildChildInvocation();
 
   // By default, services have their current directory set to %SYSTEMROOT%\System32.
   // We want to use the directory where Sunshine.exe is located instead of system32.

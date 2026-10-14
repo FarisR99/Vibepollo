@@ -1,5 +1,45 @@
 # Vibepollo
 
+> [!CAUTION]
+> **AI-generated fork additions.** The changes ported from
+> [FarisR99/Sunshine](https://github.com/FarisR99/Sunshine) were written with Claude Code
+> and adapted here with Codex. Review and test the changes on your own hardware before relying on them.
+
+## About this personal fork
+
+This repository is [FarisR99/Vibepollo](https://github.com/FarisR99/Vibepollo), a personal fork of
+[Nonary/Vibepollo](https://github.com/Nonary/Vibepollo). It will remain a fork and will track upstream updates.
+
+It adds the missing split-screen features from my Sunshine fork:
+
+- **Independent host instances:** `--config-dir <directory>` (or `SUNSHINE_CONFIG_DIR`) selects
+  separate configuration, applications, credentials, state, and logs. Give each instance a distinct
+  `port=<base-port>`; tray tooltips include the directory name.
+- **Additional Windows services:** the install/uninstall scripts under
+  `src_assets/windows/misc/service/` run the same executable with separate config directories and ports.
+  The service host forwards its arguments and uses separate service output logs.
+- **Per-app capture cropping:** `capture-crop` accepts `x,y,width,height` in physical pixels on an
+  unrotated Windows display, including DDA and Vibepollo's service-mode WGC RAM/VRAM backends.
+- **NVIDIA Surround automation:** [the standalone NVAPI tool](contrib/nvidia-surround-toggle/README.md)
+  can enable or disable a combined display from app preparation commands.
+
+Vibepollo already provides per-app display selection, controller types, and input configuration
+via `config-overrides`; this fork reuses those implementations. For example,
+`"config-overrides": {"keyboard": "disabled", "mouse": "disabled", "controller": "enabled"}`
+restricts an application's input. Use the existing app compatibility and configuration editors.
+
+### Split-screen example
+
+Combine two 3840x2160 outputs with NVIDIA Surround, launch a split-screen game across 7680x2160,
+and run two instances with different base ports and config directories. Select the same physical
+output in each instance, set `capture-crop` to `0,0,3840,2160` for player one and
+`3840,0,3840,2160` for player two, and connect one client to each instance.
+Keep display automation under one instance's control; Windows display layout and physical input
+remain shared host resources. Cropping does not create isolated desktops or independent games.
+
+See [fork configuration](docs/fork_configuration.md) for commands and compatibility details.
+
+
 ## What is Vibepollo?
 
 Vibepollo is an AI‑enhanced version of Apollo, a popular remote streaming application. It intends to integrate all scripts from myself (Nonary) and more.
