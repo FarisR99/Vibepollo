@@ -40,6 +40,13 @@ remain shared host resources. Cropping does not create isolated desktops or inde
 See [fork configuration](docs/fork_configuration.md) for commands and compatibility details.
 
 
+## Build from source on Windows
+
+Follow the [Windows developer build guide](docs/building-windows.md) for the
+MSYS2 UCRT64 setup, dependencies, clone and build commands, tests, and local installers.
+It also covers optional browser streaming and the NVIDIA Surround helper.
+For other platforms, see [Building](docs/building.md).
+
 ## What is Vibepollo?
 
 Vibepollo is an AI‑enhanced version of Apollo, a popular remote streaming application. It intends to integrate all scripts from myself (Nonary) and more.
