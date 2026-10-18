@@ -417,6 +417,8 @@
     "output_name_default": "Primary display (default)"
   },
   "config": {
+    "capture_crop": "Capture Crop Rect",
+    "capture_crop_desc": "Optional x,y,width,height rectangle in physical pixels relative to the selected display. Empty captures the full output. Windows only; rotated displays are not supported.",
     "app_focus_title": "Managed application focus",
     "app_focus_description": "Bring games launched from managed libraries to the foreground. Applies to Steam, Lutris and Playnite on their supported platforms.",
     "app_focus_attempts": "Focus count",

@@ -2914,6 +2914,19 @@ this option to replace the running app immediately. The default is `true`.
     </tr>
 </table>
 
+### capture_crop
+
+Capture a rectangle from the selected Windows display using `x,y,width,height` in physical pixels,
+relative to the display's top-left corner. Leave empty (the default) to capture the full output.
+DDA and WGC support cropping on unrotated displays. Invalid or out-of-bounds rectangles are ignored.
+
+```ini
+capture_crop = 3840,0,3840,2160
+```
+
+Per-application runtime configuration overrides can set this option for individual apps.
+See [fork configuration](fork_configuration.md) for split-screen and multi-instance examples.
+
 ### capture
 
 <table>

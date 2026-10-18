@@ -256,6 +256,12 @@ namespace platf::dxgi {
      */
     void copy_capture_region(ID3D11Texture2D *destination, ID3D11Texture2D *source);
 
+    /**
+     * @brief Apply the configured crop after full-output geometry and monitoring are initialized.
+     * @details Preserve source dimensions and reject crops on rotated or undersized outputs.
+     */
+    void apply_capture_crop();
+
     int client_frame_rate {};
     DXGI_RATIONAL client_frame_rate_strict {0, 0};
 
