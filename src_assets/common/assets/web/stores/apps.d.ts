@@ -14,7 +14,7 @@ export interface App {
   'working-dir'?: string;
   'image-path'?: string;
   'playnite-icon-path'?: string;
-  'image-version'?: number;
+  'image-version'?: number | string;
   'playnite-icon-version'?: number;
   'exclude-global-prep-cmd'?: boolean;
   'config-overrides'?: Record<string, unknown>;

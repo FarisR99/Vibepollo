@@ -88,6 +88,19 @@ TEST(HttpPairingAuthorization, DisabledAndUnknownCertificatesAreRejected) {
   );
 }
 
+TEST(HttpPairingAuthorization, CertificateIdentityMatchIsExact) {
+  const std::array clients {
+    pairing_policy::paired_client_record_view_t {"2474C237-8089-AB2B-0793-E0367530227B", "cert-a", true},
+  };
+
+  const auto exact_match = pairing_policy::resolve_paired_client(clients, "cert-a");
+  ASSERT_EQ(exact_match.status, pairing_policy::paired_client_resolution_e::authorized);
+  ASSERT_EQ(exact_match.index, 0u);
+
+  const auto case_variant = pairing_policy::resolve_paired_client(clients, "CERT-A");
+  ASSERT_EQ(case_variant.status, pairing_policy::paired_client_resolution_e::unknown_certificate);
+}
+
 TEST(HttpPairingAuthorization, AmbiguousOrMalformedPairingStateFailsClosed) {
   const std::array duplicate_uuid {
     pairing_policy::paired_client_record_view_t {"2474C237-8089-AB2B-0793-E0367530227B", "cert-a", true},
@@ -365,7 +378,11 @@ TEST(PairedStateRecovery, CanonicalLegacyAliasRetainsTypedPolicyAndDistinctLegac
   snapshot["root"]["named_devices"][0] = named[0];
   snapshot["root"]["named_devices"].push_back(named[0]);
   snapshot["root"]["named_devices"][1]["uuid"] = "33333333-3333-3333-3333-333333333333";
-  EXPECT_FALSE(nvhttp::state_policy::normalize_snapshot(snapshot, identity));
+  ASSERT_TRUE(nvhttp::state_policy::normalize_snapshot(snapshot, identity));
+  ASSERT_EQ(snapshot["root"]["named_devices"].size(), 1);
+  EXPECT_EQ(snapshot["root"]["named_devices"][0]["uuid"], named[0]["uuid"]);
+  EXPECT_EQ(snapshot["root"]["named_devices"][0]["do"], named[0]["do"]);
+  EXPECT_EQ(snapshot["root"]["named_devices"][0]["perm"], 0);
 }
 
 TEST(PairedStateRecovery, RejectsMalformedPermissionRatherThanGrantingDefault) {
@@ -374,6 +391,30 @@ TEST(PairedStateRecovery, RejectsMalformedPermissionRatherThanGrantingDefault) {
     snapshot["root"]["named_devices"][0]["perm"] = invalid;
     EXPECT_FALSE(nvhttp::state_policy::normalize_snapshot(snapshot));
   }
+}
+
+TEST(PairedStateRecovery, DuplicateRevocationPreservesFirstRecordAndTypedValidation) {
+  for (const auto &revocation : {nlohmann::json(0), nlohmann::json("00"), nlohmann::json(1), nlohmann::json(static_cast<std::uint32_t>(crypto::PERM::_default))}) {
+    auto snapshot = paired_snapshot();
+    snapshot["root"]["named_devices"][0]["perm"] = static_cast<std::uint32_t>(crypto::PERM::_default);
+    auto duplicate = snapshot["root"]["named_devices"][0];
+    duplicate["uuid"] = "33333333-3333-3333-3333-333333333333";
+    duplicate["name"] = "later duplicate";
+    duplicate["perm"] = revocation;
+    snapshot["root"]["named_devices"].push_back(duplicate);
+    ASSERT_TRUE(nvhttp::state_policy::valid_primary_json_with_certificates(snapshot.dump(), {}));
+    ASSERT_TRUE(nvhttp::state_policy::normalize_snapshot(snapshot));
+    ASSERT_EQ(snapshot["root"]["named_devices"].size(), 1);
+    EXPECT_EQ(snapshot["root"]["named_devices"][0]["name"], "client");
+    EXPECT_EQ(snapshot["root"]["named_devices"][0]["perm"],
+              revocation == static_cast<std::uint32_t>(crypto::PERM::_default) ? static_cast<std::uint32_t>(crypto::PERM::_default) : 0);
+  }
+  auto malformed = paired_snapshot();
+  auto duplicate = malformed["root"]["named_devices"][0];
+  duplicate["uuid"] = "33333333-3333-3333-3333-333333333333";
+  duplicate["perm"] = "bad";
+  malformed["root"]["named_devices"].push_back(duplicate);
+  EXPECT_FALSE(nvhttp::state_policy::valid_primary_json_with_certificates(malformed.dump(), {}));
 }
 
 TEST(PairedStateRecovery, RejectsInvalidIdentityAndDuplicateRecords) {

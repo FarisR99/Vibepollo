@@ -44,7 +44,9 @@ rectangles, and cropping on rotated displays, are ignored by native capture.
 Cropping is supported on Windows DDA and service-mode WGC with RAM or VRAM encoding.
 Source-size change detection still checks the complete output. Captured buffers use the crop's
 size, cursor rendering is shifted, and absolute mouse input targets the cropped desktop region.
-Linux and macOS retain full-output capture. Use even dimensions for encoder compatibility.
+A crop keeps the WGC host snapshot copy for encoder input: the helper's shared frame is the whole
+output, and only the copy submits the crop rectangle, so `wgc_direct_encoder_input` is ignored for
+that session. Linux and macOS retain full-output capture. Use even dimensions for encoder compatibility.
 
 ## Existing Vibepollo equivalents
 
