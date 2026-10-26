@@ -12,6 +12,10 @@ and an overview of the automated workflows that are triggered during the release
 ### [Chinese Localization Reference](chinese-web-ui-localization.md)
 Notes for reviewing the retained Simplified and Traditional Chinese locale catalogs.
 
+### [Building on Windows from WSL](windows-build-from-wsl.md)
+Verified agent recipe for driving the MSYS2 UCRT64 Windows build from WSL2, including the
+cmd.exe wrapper, toolchain checks, and known prerequisite pitfalls.
+
 ---
 
 > [!NOTE]

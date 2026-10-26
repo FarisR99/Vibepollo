@@ -55,6 +55,11 @@ C:\msys64\msys2_shell.cmd -defterm -here -no-start -ucrt64 -c "ctest --test-dir 
 The launcher does not repair a missing PATH or create a CMake configuration; prepare
 those first using the guide. Do not mix shell quoting between Bash, PowerShell, and cmd.exe.
 
+When driving the Windows build from WSL, follow
+[docs/maintainers/windows-build-from-wsl.md](docs/maintainers/windows-build-from-wsl.md).
+It covers the `.cmd` wrapper that avoids WSL-to-cmd.exe quoting failures, absolute tool paths,
+slow git over `/mnt/c`, and the verified configure/build scripts.
+
 For packaging, build `package_msi`, not CPack alone, so required producer validation and
 refresh targets run. `package_installer` also builds the wrapper EXE. WiX v3.14 is required;
 the additional x86 Vulkan layer needs Visual Studio 2022 C++ tools and a Windows SDK even
