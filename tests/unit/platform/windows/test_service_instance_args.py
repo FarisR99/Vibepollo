@@ -12,9 +12,10 @@ production = source[start:end]
 fakes = r'''
 #include <cassert>
 #include <string>
+#include <string_view>
 std::wstring command_line;
 std::wstring g_child_command_line = L"Sunshine.exe";
-std::wstring g_log_file_leaf = L"sunshine.log";
+std::wstring g_log_file_leaf = L"sunshine-service.log";
 const wchar_t *GetCommandLineW() { return command_line.c_str(); }
 '''
 main = r'''
@@ -23,18 +24,24 @@ int main() {
   assert(GetForwardedArguments().empty());
   BuildChildInvocation();
   assert(g_child_command_line == L"Sunshine.exe");
-  assert(g_log_file_leaf == L"sunshine.log");
+  assert(g_log_file_leaf == L"sunshine-service.log");
 
   command_line = L"\"C:\\Program Files\\Vibepollo\\tools\\sunshinesvc.exe\"  \t--config-dir \"C:\\Players\\Player Two\" port=48989";
   const auto forwarded = GetForwardedArguments();
   assert(forwarded == L"--config-dir \"C:\\Players\\Player Two\" port=48989");
   BuildChildInvocation();
   assert(g_child_command_line == L"Sunshine.exe " + forwarded);
-  assert(g_log_file_leaf == L"sunshine-Player Two.log");
+  assert(g_log_file_leaf == L"sunshine-service-Player Two.log");
 
   command_line = L"sunshinesvc.exe --config-dir=player-two port=48989";
   BuildChildInvocation();
-  assert(g_log_file_leaf == L"sunshine-player-two.log");
+  assert(g_log_file_leaf == L"sunshine-service-player-two.log");
+  command_line = L"sunshinesvc.exe --config-dir=C:";
+  BuildChildInvocation();
+  assert(g_log_file_leaf == L"sunshine-service-C_.log");
+  command_line = L"sunshinesvc.exe --config-dir=\"D:/odd<name>|*?\"";
+  BuildChildInvocation();
+  assert(g_log_file_leaf == L"sunshine-service-odd_name____.log");
   assert(ConfigDirLeaf(L"--config-dir=C:/Players/two/") == L"two");
   assert(ConfigDirLeaf(L"--config-dir C:\\Players\\two\\") == L"two");
   assert(ConfigDirLeaf(L"port=48989").empty());

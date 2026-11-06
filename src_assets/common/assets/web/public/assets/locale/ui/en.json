@@ -1681,7 +1681,7 @@
           "label": "@:config.virtual_display_scale_label"
         },
         "virtual_display_outputs": {
-          "description": "Optional comma-separated DRM connector names reserved for private streams. Leave empty to use the four-output managed pool. On Linux 7.1+, Vibepollo provides GPU-attached HDR10 and 10-bit output; HDR uses direct KMS capture, KWin is recommended for SDR, and managed display creation fails if the custom driver is unavailable.",
+          "description": "Optional comma-separated DRM connector names reserved for private streams. Leave empty to use the managed pool (eight outputs for new pools; four retained during upgrades). On Linux 6.16+, the bundled vibeshine_drm module provides GPU-attached HDR10 and 10-bit output; HDR uses direct KMS capture, KWin is recommended for SDR, and managed display creation fails if the custom driver is unavailable.",
           "label": "Linux private display connectors"
         },
         "virtual_display_max_clients": {
@@ -1766,7 +1766,7 @@
           "warning": "Warning: Async, Front-edge Sync, Back-edge Sync, or any other mode besides NVIDIA Reflex can cause massive latency when a game uses DLSS Frame Generation. You are accepting that trade-off for virtual-display streams."
         },
         "rtss_install_path": {
-          "description": "Leave blank to detect the RTSS installation folder automatically. RTSS is ready when its hooks are present.",
+          "description": "Choose an RTSS installation under Program Files, or leave blank to detect it automatically. Other locations fall back to the default for service safety. RTSS is ready when its signed hooks are trusted.",
           "label": "RTSS installation folder"
         },
         "virtual_display_layout": {
