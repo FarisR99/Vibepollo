@@ -1,6 +1,7 @@
 #include "src/legacy_generated_app_identities.h"
 #include "../tests_common.h"
 
+#include "src/jthread.h"
 #include "src/remote_session.h"
 
 #include <atomic>
@@ -81,11 +82,17 @@ TEST(RemoteSession, CatalogueProjectionMatchesCallerOwnershipMatrix) {
   EXPECT_EQ(observer.catalogue[5].id, remote_session::secondary_input_id);
   EXPECT_EQ(observer.catalogue[6].id, remote_session::secondary_monitor_id);
 
+  // A kept Monitor must not hide the other apps: Moonlight caches this list
+  // when the Monitor stream ends, so a controls-only list strands the client.
   const auto monitor = remote_session::project(caller("monitor"), {}, {.role = remote_session::role_e::monitor, .retained = true}, configured, true);
-  ASSERT_EQ(monitor.catalogue.size(), 2);
+  ASSERT_EQ(monitor.catalogue.size(), 4);
   EXPECT_EQ(monitor.catalogue[0].id, remote_session::resume_id);
   EXPECT_EQ(monitor.catalogue[1].id, remote_session::disconnect_monitor_id);
+  EXPECT_EQ(monitor.catalogue[2].title, "One");
+  EXPECT_EQ(monitor.catalogue[3].title, "Two");
 
+  // Moonlight fetches the list while its Remote Input session is closing,
+  // so the tile stays listed for that client.
   const auto input = remote_session::project(caller("input"), {}, {.role = remote_session::role_e::input}, configured, true);
   ASSERT_EQ(input.catalogue.size(), 4);
   EXPECT_EQ(input.catalogue[0].id, 1);
@@ -104,9 +111,14 @@ TEST(RemoteSession, CatalogueProjectionMatchesCallerOwnershipMatrix) {
   EXPECT_EQ(input_during_game.catalogue[6].id, remote_session::secondary_monitor_id);
 
   const auto game_owner_monitor = remote_session::project(caller("owner"), game(), {.role = remote_session::role_e::monitor, .retained = true}, configured, true);
-  ASSERT_EQ(game_owner_monitor.catalogue.size(), 2);
+  ASSERT_EQ(game_owner_monitor.catalogue.size(), 4);
   EXPECT_EQ(game_owner_monitor.catalogue[0].id, remote_session::resume_id);
   EXPECT_EQ(game_owner_monitor.catalogue[1].id, remote_session::disconnect_monitor_id);
+  EXPECT_EQ(game_owner_monitor.catalogue[2].title, "One");
+  EXPECT_EQ(game_owner_monitor.catalogue[3].title, "Two");
+  EXPECT_FALSE(std::any_of(game_owner_monitor.catalogue.begin(), game_owner_monitor.catalogue.end(), [](const auto &app) {
+    return app.id == remote_session::input_id || app.id == remote_session::monitor_id;
+  }));
 }
 
 TEST(RemoteSession, InputTileSurvivesTeardownForBothGameOwnersAndSecondaryClients) {
@@ -399,6 +411,7 @@ TEST(RemoteSession, DispatchEnforcesCallerPermissionsAndRetention) {
   EXPECT_TRUE(ownerless_disconnect.already_complete);
   EXPECT_FALSE(remote_session::dispatch(caller("monitor"), {}, {.role = remote_session::role_e::monitor}, remote_session::control_e::input).allowed);
   EXPECT_FALSE(remote_session::dispatch(caller("input"), {}, {.role = remote_session::role_e::input}, remote_session::control_e::monitor).allowed);
+  EXPECT_TRUE(remote_session::dispatch(caller("input"), {}, {.role = remote_session::role_e::input}, remote_session::control_e::input).allowed);
   const auto stale_monitor_launch = remote_session::dispatch(
     caller("monitor"),
     {},
@@ -618,7 +631,7 @@ TEST(RemoteSession, NormalAppTransitionGateSerializesProcessStartPublication) {
   std::atomic_bool contender_started {false};
   std::atomic_bool contender_entered {false};
   std::unique_lock first_transition {gate};
-  std::jthread contender {[&] {
+  util::jthread contender {[&] {
     contender_started.store(true, std::memory_order_release);
     std::lock_guard second_transition {gate};
     contender_entered.store(true, std::memory_order_release);
@@ -702,7 +715,8 @@ TEST(RemoteSession, ExplicitProfilesKeepDistinctCatalogueIdentitiesBesideBuiltin
   EXPECT_EQ(catalogue.catalogue[1].id, 42);
   EXPECT_EQ(catalogue.catalogue.back().id, remote_session::monitor_id);
   EXPECT_EQ(remote_session::identify(41, "a1234567-1234-4234-8234-123456789abc"), remote_session::control_e::none);
-  // A retained owner still sees exactly the generic Resume/Disconnect pair.
+  // A retained owner sees the generic Resume/Disconnect pair and ordinary apps,
+  // never another Monitor profile (those conflict until Disconnect Monitor).
   const auto retained = remote_session::project(caller("client"), {}, {.role = remote_session::role_e::monitor, .retained = true}, configured, true);
   ASSERT_EQ(retained.catalogue.size(), 2);
   EXPECT_EQ(retained.catalogue[0].id, remote_session::resume_id);
@@ -778,4 +792,18 @@ TEST(RemoteSession, MarkedProfilesRejectLegacyGeneratedUUIDsWithoutChangingOrdin
     EXPECT_FALSE(remote_session::monitor_profile_uuid_error(uuid, {}).empty());
     EXPECT_EQ(remote_session::identify(0, uuid), remote_session::control_e::none);
   }
+}
+
+TEST(RemoteSession, ApolloVirtualDisplayKeepsItsNormalCatalogueAndRouting) {
+  const remote_session::app_t desktop {31, VIRTUAL_DISPLAY_UUID, "Virtual Display", false};
+  const std::vector<remote_session::app_t> configured {desktop, {32, "game", "Game", false}};
+  const remote_session::game_t active {.running = true, .owner_uuid = "owner", .app = desktop};
+  for (const auto &projection : {
+         remote_session::project(caller("owner"), {}, {}, configured, false),
+         remote_session::project(caller("owner"), active, {}, configured, false)}) {
+    EXPECT_EQ(std::count_if(projection.catalogue.begin(), projection.catalogue.end(), [](const auto &app) { return app.uuid == VIRTUAL_DISPLAY_UUID; }), 1);
+    EXPECT_TRUE(std::any_of(projection.catalogue.begin(), projection.catalogue.end(), [](const auto &app) { return app.id == 32; }));
+    EXPECT_FALSE(std::any_of(projection.catalogue.begin(), projection.catalogue.end(), [](const auto &app) { return app.id == remote_session::disconnect_monitor_id; }));
+  }
+  EXPECT_EQ(remote_session::identify(desktop.id, desktop.uuid), remote_session::control_e::none);
 }

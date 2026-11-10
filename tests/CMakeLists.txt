@@ -17,6 +17,7 @@ if(WIN32)
     # library because they do not inherit the application's platform libraries.
     list(APPEND SUNSHINE_TEST_FFMPEG_PLATFORM_LIBRARIES bcrypt)
 elseif(APPLE)
+    # FFmpeg's static archives include the VideoToolbox encoder and hardware context.
     list(APPEND SUNSHINE_TEST_FFMPEG_PLATFORM_LIBRARIES
         "-framework CoreFoundation"
         "-framework CoreMedia"
@@ -740,6 +741,8 @@ sunshine_register_component(NAME test_component_paused_app_monitor TEST_SOURCE u
     LINK_LIBRARIES Threads::Threads Boost::property_tree OpenSSL::Crypto)
 sunshine_register_component(NAME test_component_display_helper_request_policy TEST_SOURCE unit/test_display_helper_request_policy.cpp
     PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/platform/windows/display_helper_request_policy.cpp")
+sunshine_register_component(NAME test_component_display_clone_group_policy TEST_SOURCE unit/test_display_clone_group_policy.cpp
+    LINK_LIBRARIES sunshine_test_displaydevice_headers)
 sunshine_register_component(NAME test_component_remote_display_topology TEST_SOURCE unit/test_remote_display_topology.cpp
     PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/remote_display_topology.cpp"
     LINK_LIBRARIES nlohmann_json::nlohmann_json)
@@ -1672,11 +1675,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND SUNSHINE_TEST_ENABLE_COMPONENT)
                 "${SUNSHINE_TEST_REPOSITORY_ROOT}/packaging/linux/vibepollo-session-controller")
         set_tests_properties(test_component_linux_session_command_timeout PROPERTIES LABELS "component" TIMEOUT 15)
         add_test(
-            NAME test_component_linux_machine_host_manifest
+            NAME test_component_linux_machine_host_retired_authorization
             COMMAND "${SUNSHINE_TEST_BASH_EXECUTABLE}"
-                "${CMAKE_CURRENT_LIST_DIR}/unit/platform/linux/test_machine_host_manifest.sh"
+                "${CMAKE_CURRENT_LIST_DIR}/unit/platform/linux/test_machine_host_retired_authorization.sh"
                 "${SUNSHINE_TEST_REPOSITORY_ROOT}/packaging/linux/vibepollo-machine-host")
-        set_tests_properties(test_component_linux_machine_host_manifest PROPERTIES LABELS "component")
+        set_tests_properties(test_component_linux_machine_host_retired_authorization PROPERTIES LABELS "component")
     else()
         message(WARNING "bash was not found; skipping the Linux VKMS setup shell test")
     endif()
@@ -1902,6 +1905,8 @@ if(APPLE)
         PROPERTIES LANGUAGE CXX)
     sunshine_register_component(NAME test_component_av_audio_policy TEST_SOURCE unit/platform/macos/test_av_audio.mm
         PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/platform/macos/av_audio_policy.cpp")
+    sunshine_register_component(NAME test_component_macos_display_policy TEST_SOURCE unit/platform/macos/test_display_policy.cpp
+        PRODUCT_SOURCES "${SUNSHINE_TEST_REPOSITORY_ROOT}/src/platform/macos/display_policy.cpp")
 endif()
 
 
@@ -2036,6 +2041,12 @@ if(Python3_Interpreter_FOUND AND SUNSHINE_TEST_GXX)
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/platform/windows/test_rtss_trust_compile.py"
                 --compiler "${CMAKE_CXX_COMPILER}")
     endif()
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_test(NAME regression_windows_frame_limiter_lifecycle
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/platform/windows/test_frame_limiter_vsync.py"
+                "${SUNSHINE_TEST_REPOSITORY_ROOT}")
+        set_tests_properties(regression_windows_frame_limiter_lifecycle PROPERTIES LABELS "component" TIMEOUT 60)
+    endif()
     add_test(NAME regression_display_policy_adapter
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/test_display_policy_adapter.py")
     add_library(sunshine_test_session_display_precedence_dependencies INTERFACE)
@@ -2044,6 +2055,12 @@ if(Python3_Interpreter_FOUND AND SUNSHINE_TEST_GXX)
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/test_session_display_precedence.py"
             --compiler "${CMAKE_CXX_COMPILER}"
             --include-dir "$<TARGET_PROPERTY:sunshine_test_session_display_precedence_dependencies,INTERFACE_INCLUDE_DIRECTORIES>")
+    add_library(sunshine_test_virtual_display_applet_dependencies INTERFACE)
+    target_link_libraries(sunshine_test_virtual_display_applet_dependencies INTERFACE nlohmann_json::nlohmann_json)
+    add_test(NAME regression_virtual_display_applet
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/test_virtual_display_applet.py"
+            --compiler "${CMAKE_CXX_COMPILER}"
+            --include-dir "$<TARGET_PROPERTY:sunshine_test_virtual_display_applet_dependencies,INTERFACE_INCLUDE_DIRECTORIES>")
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         add_test(NAME regression_touch_mapping_environment
             COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/unit/platform/linux/test_touch_mapping_environment.py")

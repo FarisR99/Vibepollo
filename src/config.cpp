@@ -934,6 +934,7 @@ namespace config {
 
     video_t::virtual_display_mode_e::per_client,  // virtual_display_mode
     video_t::virtual_display_layout_e::exclusive,  // virtual_display_layout
+    true,  // virtual_display_keep_while_paused
 
     4,  // virtual_display_max_clients
     false,  // remote_monitor_mute_audio
@@ -1097,7 +1098,7 @@ namespace config {
     #endif
 
     int default_min_log_level() {
-      if (version_compare::is_prerelease_channel(PROJECT_VERSION)) {
+      if (version_compare::is_prerelease_build(PROJECT_BUILD_CHANNEL, PROJECT_VERSION)) {
         return 1;
       }
       return 2;
@@ -1938,7 +1939,7 @@ namespace config {
     string_f(vars, "capture_crop", video.capture_crop);
 
     const auto virtual_display_mode_it = vars.find("virtual_display_mode");
-    const bool virtual_display_mode_specified =
+    [[maybe_unused]] const bool virtual_display_mode_specified =
       virtual_display_mode_it != vars.end() && !virtual_display_mode_it->second.empty();
     generic_f(vars, "virtual_display_mode", video.virtual_display_mode, virtual_display_mode_from_view);
 #ifdef _WIN32
@@ -1960,6 +1961,7 @@ namespace config {
     }
 #endif
     generic_f(vars, "virtual_display_layout", video.virtual_display_layout, virtual_display_layout_from_view);
+    bool_f(vars, "virtual_display_keep_while_paused", video.virtual_display_keep_while_paused);
     int_between_f(vars, "virtual_display_max_clients", video.virtual_display_max_clients, {1, 8});
     bool_f(vars, "remote_monitor_mute_audio", video.remote_monitor_mute_audio);
     bool_f(vars, "remote_monitor_disconnect_on_stream_end", video.remote_monitor_disconnect_on_stream_end);
@@ -2288,6 +2290,7 @@ namespace config {
     bool_f(vars, "enable_input_only_mode", input.enable_input_only_mode);
 
     bool_f(vars, "system_tray", sunshine.system_tray);
+    bool_f(vars, "lid_close_ends_streams", sunshine.lid_close_ends_streams);
     bool_f(vars, "hide_tray_controls", sunshine.hide_tray_controls);
     bool_f(vars, "enable_pairing", sunshine.enable_pairing);
     bool_f(vars, "enable_discovery", sunshine.enable_discovery);
