@@ -104,7 +104,9 @@ echo [install] Done.
 exit /b 0
 
 :require_admin
-net session >nul 2>&1
+rem fltmc requires elevation without depending on the Server (LanmanServer) service,
+rem unlike "net session", which fails when that service is stopped.
+fltmc >nul 2>&1
 if errorlevel 1 ( echo [install] Please run this from an elevated (Administrator) prompt.>&2 & exit /b 1 )
 exit /b 0
 

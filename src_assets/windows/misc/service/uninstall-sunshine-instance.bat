@@ -25,7 +25,9 @@ echo [uninstall] Unknown argument: %~1>&2
 exit /b 2
 
 :run
-net session >nul 2>&1
+rem fltmc requires elevation without depending on the Server (LanmanServer) service,
+rem unlike "net session", which fails when that service is stopped.
+fltmc >nul 2>&1
 if errorlevel 1 ( echo [uninstall] Please run this from an elevated (Administrator) prompt.>&2 & exit /b 1 )
 if not defined NAME ( echo [uninstall] --name is required.>&2 & exit /b 2 )
 if /I "%NAME%"=="ApolloService" if not defined FORCE (
