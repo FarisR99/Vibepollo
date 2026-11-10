@@ -18,7 +18,7 @@ rem   --port <basePort>      Base port, e.g. 48989 (web UI = basePort+1)
 rem
 rem Options:
 rem   --start <type>         auto (default) | demand | delayed-auto | disabled
-rem   --display "<text>"     Service display name (default: "Vibepollo Service (<name>)")
+rem   --display "<text>"     Service display name (default: "Apollo Service (<name>)", matching the MSI's "Apollo Service")
 rem   --svc "<path>"         Path to the PATCHED sunshinesvc.exe (auto-located otherwise)
 rem   --firewall             Also add inbound firewall rules for this port range
 rem   --no-start             Create the service but do not start it now
@@ -59,7 +59,7 @@ if /I "%NAME%"=="ApolloService" if not defined FORCE (
   echo [install] Refusing to touch the primary "ApolloService" without --force.>&2
   exit /b 2
 )
-if not defined DISPLAY set "DISPLAY=Vibepollo Service (%NAME%)"
+if not defined DISPLAY set "DISPLAY=Apollo Service (%NAME%)"
 
 call :find_svc
 if not defined SVC (
