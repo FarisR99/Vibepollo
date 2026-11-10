@@ -108,11 +108,11 @@
       <Component Id="ApolloSvc" Guid="{CBA8A3D9-5A2A-4F76-9923-5B23D1EDFBB6}">
         <File Id="ApolloSvcExe" Source="!(bindpath.PayloadRoot)tools\\sunshinesvc.exe" KeyPath="yes" />
         <!-- No Arguments: sunshinesvc.exe already runs as a service on its own and
-             forwards its binPath arguments verbatim to Sunshine.exe. legacy Sunshine
-             passed "--service" (Sunshine.exe had a service command); Sunshine.exe
-             here parses any "--x" as a command, so forwarding "--service" makes the
-             child exit fatally ("Unknown command: service") and the service restarts
-             in a loop. Register additional instances via
+             forwards its binPath arguments verbatim to Sunshine.exe. Legacy Sunshine
+             passed a double-dash "service" flag (Sunshine.exe had a service command);
+             Sunshine.exe here parses any double-dash option as a command, so forwarding
+             that flag makes the child exit fatally ("Unknown command: service") and the
+             service restarts in a loop. Register additional instances via
              scripts\install-sunshine-instance.bat instead. -->
         <ServiceInstall
             Id="ApolloServiceInstall"
