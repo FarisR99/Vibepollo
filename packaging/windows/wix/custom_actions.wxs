@@ -118,6 +118,7 @@
             Id="ApolloServiceInstall"
             Name="ApolloService"
             DisplayName="Apollo Service"
+            Description="Vibepollo game stream host instance (default config directory)."
             Type="ownProcess"
             Start="auto"
             ErrorControl="normal"
