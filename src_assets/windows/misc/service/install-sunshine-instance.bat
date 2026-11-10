@@ -89,7 +89,7 @@ sc description "%NAME%" "Vibepollo game stream host instance (config-dir %CONFIG
 
 if defined FIREWALL (
   set /a LO=%PORT%-5, HI=%PORT%+21
-  echo [install] Adding firewall rules for ports !LO!-!HI! (TCP+UDP)...
+  echo [install] Adding TCP and UDP firewall rules for ports !LO!-!HI!...
   netsh advfirewall firewall delete rule name="Sunshine %NAME% TCP" >nul 2>&1
   netsh advfirewall firewall delete rule name="Sunshine %NAME% UDP" >nul 2>&1
   netsh advfirewall firewall add rule name="Sunshine %NAME% TCP" dir=in action=allow protocol=TCP localport=!LO!-!HI! >nul
@@ -107,7 +107,7 @@ exit /b 0
 rem fltmc requires elevation without depending on the Server (LanmanServer) service,
 rem unlike "net session", which fails when that service is stopped.
 fltmc >nul 2>&1
-if errorlevel 1 ( echo [install] Please run this from an elevated (Administrator) prompt.>&2 & exit /b 1 )
+if errorlevel 1 ( echo [install] Please run this from an elevated Administrator prompt.>&2 & exit /b 1 )
 exit /b 0
 
 rem Locate the PATCHED sunshinesvc.exe. Its folder also decides which Sunshine.exe
@@ -118,7 +118,7 @@ rem C:\dev\...\cmake-build-release build. Force a specific one with --svc.
 :find_svc
 if defined SVC (
   if exist "%SVC%" ( for %%I in ("%SVC%") do set "SVC=%%~fI" & goto :eof )
-  echo [install] --svc path not found: "%SVC%" (falling back to auto-detect)>&2
+  echo [install] --svc path not found: "%SVC%" - falling back to auto-detect>&2
   set "SVC="
 )
 if defined SUNSHINE_SVC_EXE if exist "%SUNSHINE_SVC_EXE%" set "SVC=%SUNSHINE_SVC_EXE%"
